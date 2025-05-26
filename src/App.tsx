@@ -6,8 +6,12 @@ import { Loader2 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
 export default function App() {
+  type Message = {
+    role: string;
+    content: string;
+  };
   const [prompt, setPrompt] = useState("");
-  const [chatHistory, setChatHistory] = useState([]);
+  const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState("");
@@ -28,6 +32,7 @@ export default function App() {
 
     const newUserMessage = { role: "user", content: prompt };
     setChatHistory((prev) => [...prev, newUserMessage]);
+
     setPrompt("");
     setLoading(true);
     setError("");
@@ -47,7 +52,11 @@ export default function App() {
       const botMessage = { role: "assistant", content: data.response };
       setChatHistory((prev) => [...prev, botMessage]);
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong.");
+      }
     } finally {
       setLoading(false);
     }
