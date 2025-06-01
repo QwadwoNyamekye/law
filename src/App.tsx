@@ -38,7 +38,7 @@ export default function App() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:5001/api/ask", {
+      const res = await fetch("https://law-project-backend.fly.dev/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -64,9 +64,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="bg-black text-white p-4 text-2xl font-semibold text-center shadow-md">
-        Nimdie Legal
-      </header>
+      <>
+        <img
+          src="./assets/Nimdie Legal - Banner.svg"
+          alt="Nimdie Legal Banner"
+          className="w-full h-1/5"
+        />
+        <header className="bg-black text-white p-4 text-2xl font-semibold text-center shadow-md">
+          Nimdie Legal
+        </header>
+      </>
       <main className="flex-1 flex justify-center items-center px-4 py-6">
         <Card className="w-full h-full max-w-4xl flex flex-col p-6 shadow-lg rounded-2xl bg-gray-50">
           <div className="flex-1 overflow-y-auto space-y-4">
