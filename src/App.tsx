@@ -66,7 +66,7 @@ export default function App() {
     <div className="min-h-screen bg-white flex flex-col">
       <>
         <img
-          src="./assets/Nimdie Legal - Banner.svg"
+          src="/Nimdie Legal - Banner.svg"
           alt="Nimdie Legal Banner"
           className="w-full h-1/5"
         />
