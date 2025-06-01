@@ -38,7 +38,7 @@ export default function App() {
     setError("");
 
     try {
-      const res = await fetch("https://law-project-backend.fly.dev/", {
+      const res = await fetch("https://law-project-backend.fly.dev/api/ask", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
