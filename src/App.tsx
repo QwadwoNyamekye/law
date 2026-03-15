@@ -96,14 +96,15 @@ export default function App() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || data.error || "Server error");
+        // Always show a friendly, generic error in the UI
+        throw new Error("The AI is unavailable right now. Please try again or switch to another provider.");
       }
 
       const botMessage = { role: "assistant", content: data.response };
       setChatHistory((prev) => [...prev, botMessage]);
       if (data.session_id) setSessionId(data.session_id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } catch {
+      setError("The AI is unavailable right now. Please try again or switch to another provider.");
     } finally {
       setLoading(false);
     }
