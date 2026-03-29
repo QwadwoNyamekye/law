@@ -16,6 +16,37 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   gemini: "Gemini",
 };
 
+// Frontend hard filter: only show specific models per provider
+const ALLOWED_MODELS_BY_PROVIDER: Record<string, string[]> = {
+  claude: ["claude-sonnet-4-20250514"],
+  gemini: ["gemini-3-flash-preview"],
+};
+
+const RAG_MODES_STORAGE_KEY = "nimdie_rag_modes_per_model";
+
+function loadRagModeForModel(provider: string, model: string): boolean {
+  if (!provider || !model) return false;
+  try {
+    const raw = localStorage.getItem(RAG_MODES_STORAGE_KEY);
+    const map = raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+    return Boolean(map[`${provider}:${model}`]);
+  } catch {
+    return false;
+  }
+}
+
+function saveRagModeForModel(provider: string, model: string, rag: boolean) {
+  if (!provider || !model) return;
+  try {
+    const raw = localStorage.getItem(RAG_MODES_STORAGE_KEY);
+    const map = raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+    map[`${provider}:${model}`] = rag;
+    localStorage.setItem(RAG_MODES_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function App() {
   type Message = {
     role: string;
@@ -29,6 +60,7 @@ export default function App() {
   const [providers, setProviders] = useState<ProviderOption[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>("");
+  const [ragMode, setRagMode] = useState(false);
 
   useEffect(() => {
     const savedSession = localStorage.getItem("chat_session_id");
@@ -45,9 +77,25 @@ export default function App() {
     fetch(`${API_BASE}/api/models`)
       .then((res) => res.ok ? res.json() : Promise.reject(new Error("Failed to load models")))
       .then((data: { providers: ProviderOption[] }) => {
-        setProviders(data.providers || []);
-        if (data.providers?.length && !selectedProvider) {
-          const first = data.providers[0];
+        const rawProviders = data.providers || [];
+        const filteredProviders = rawProviders
+          .map((provider) => {
+            const allowedIds = ALLOWED_MODELS_BY_PROVIDER[provider.id];
+            if (!allowedIds) return provider;
+            return {
+              ...provider,
+              models: (provider.models || []).filter((m) => allowedIds.includes(m.id)),
+            };
+          })
+          .map((provider) => ({
+            ...provider,
+            models: provider.models || [],
+          }))
+          .filter((provider) => provider.models.length > 0);
+
+        setProviders(filteredProviders);
+        if (filteredProviders.length && !selectedProvider) {
+          const first = filteredProviders[0];
           setSelectedProvider(first.id);
           if (first.models?.length) setSelectedModel(first.models[0].id);
         }
@@ -65,6 +113,12 @@ export default function App() {
     }
   }, [selectedProvider, providers, selectedModel]);
 
+  useEffect(() => {
+    if (selectedProvider && selectedModel) {
+      setRagMode(loadRagModeForModel(selectedProvider, selectedModel));
+    }
+  }, [selectedProvider, selectedModel]);
+
   const handleSend = async () => {
     if (!prompt.trim()) return;
 
@@ -81,7 +135,8 @@ export default function App() {
         session_id?: string;
         provider?: string;
         model?: string;
-      } = { prompt };
+        rag_mode?: boolean;
+      } = { prompt, rag_mode: ragMode };
       if (sessionId) body.session_id = sessionId;
       if (selectedProvider && selectedModel) {
         body.provider = selectedProvider;
@@ -187,6 +242,36 @@ export default function App() {
                   </div>
                 );
               })()}
+              {/* LLM only vs RAG — remembered per provider + model */}
+              {selectedProvider && selectedModel && (
+                <div className="mt-4 flex flex-col gap-2">
+                  <span className="text-xs font-medium text-gray-500">Answer mode (this model)</span>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant={!ragMode ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setRagMode(false);
+                        saveRagModeForModel(selectedProvider, selectedModel, false);
+                      }}
+                    >
+                      LLM only
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={ragMode ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setRagMode(true);
+                        saveRagModeForModel(selectedProvider, selectedModel, true);
+                      }}
+                    >
+                      RAG
+                    </Button>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
